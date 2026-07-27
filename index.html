@@ -1,0 +1,435 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+	<title>NZB Photography</title>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<meta name="description" content="NZB Photography — Reportage, Black &amp; White, Street, People, Commercial" />
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+	<style>
+		*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+		:root {
+			--bg: #101010;
+			--panel: #fff;
+			--panel-w: 22em;
+			--accent: #00D3B7;
+			--fg: #555;
+			--fg-light: #999;
+			--label: #bbb;
+		}
+
+		html, body {
+			height: 100%;
+			font-family: 'Roboto', Helvetica, sans-serif;
+			background: var(--bg);
+			color: var(--fg);
+			overflow: hidden;
+		}
+
+		/* ── Layout ── */
+		#layout {
+			display: flex;
+			height: 100vh;
+			width: 100vw;
+		}
+
+		/* Left: viewer */
+		#viewer {
+			flex: 1;
+			background: #000;
+			position: relative;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			overflow: hidden;
+		}
+
+		#viewer-img {
+			max-width: 100%;
+			max-height: 100%;
+			object-fit: contain;
+			display: block;
+			visibility: hidden;
+		}
+
+		#viewer-caption {
+			position: absolute;
+			bottom: 0;
+			left: 0;
+			width: 100%;
+			padding: 1.5em 2em 1em;
+			background: linear-gradient(transparent, rgba(0,0,0,0.65));
+			color: #fff;
+			pointer-events: none;
+		}
+		#viewer-caption h2 {
+			font-size: 1.1em;
+			font-weight: 700;
+			color: #fff;
+			margin-bottom: 0.2em;
+		}
+		#viewer-caption p {
+			font-size: 0.8em;
+			color: rgba(255,255,255,0.6);
+		}
+
+		/* Prev/Next arrows */
+		.viewer-nav {
+			position: absolute;
+			top: 50%;
+			transform: translateY(-50%);
+			background: none;
+			border: none;
+			color: rgba(255,255,255,0.5);
+			font-size: 3em;
+			cursor: pointer;
+			padding: 0 0.3em;
+			line-height: 1;
+			z-index: 10;
+		}
+		.viewer-nav:hover { color: #fff; }
+		#nav-prev { left: 0; }
+		#nav-next { right: 0; }
+
+		/* Right: panel */
+		#panel {
+			width: var(--panel-w);
+			background: var(--panel);
+			display: flex;
+			flex-direction: column;
+			overflow: hidden;
+		}
+
+		/* Header */
+		#header {
+			padding: 2.5em 1.75em 1.5em;
+			flex-shrink: 0;
+			border-bottom: 1px solid #e8e8e8;
+		}
+		#header h1 {
+			font-size: 2em;
+			font-weight: 700;
+			color: #333;
+			line-height: 1.1;
+			margin-bottom: 0.5em;
+		}
+		#header .tagline {
+			font-size: 0.78em;
+			color: var(--fg-light);
+			line-height: 1.8;
+		}
+		#header .icons {
+			margin-top: 1em;
+			list-style: none;
+			display: flex;
+			align-items: center;
+			gap: 1.2em;
+		}
+		#header .icons a {
+			color: var(--fg-light);
+			text-decoration: none;
+			font-size: 1.1em;
+		}
+		#header .icons li:last-child a {
+			font-size: 0.78em;
+			letter-spacing: 0.05em;
+			border-bottom: 1px solid transparent;
+		}
+		#header .icons a:hover { color: var(--accent); }
+		#header .icons li:last-child a:hover { border-bottom-color: var(--accent); }
+
+		/* Thumbnail scroll area */
+		#thumbnails-wrap {
+			flex: 1;
+			overflow-y: auto;
+			overflow-x: hidden;
+		}
+		#thumbnails-wrap::-webkit-scrollbar { width: 4px; }
+		#thumbnails-wrap::-webkit-scrollbar-thumb { background: #ddd; }
+
+		/* Category label */
+		.cat-label {
+			width: 100%;
+			padding: 1em 1em 0.4em;
+			font-size: 0.65em;
+			font-weight: 700;
+			letter-spacing: 0.15em;
+			text-transform: uppercase;
+			color: var(--fg-light);
+			border-top: 1px solid #eee;
+		}
+		.cat-label:first-child { border-top: none; }
+
+		/* Thumbnail grid — 2 columns */
+		.thumbnails {
+			display: flex;
+			flex-wrap: wrap;
+			padding: 0 0.5em;
+		}
+
+		.thumbnails article {
+			width: 50%;
+			padding: 0.25em;
+			cursor: pointer;
+			position: relative;
+		}
+
+		.thumbnails article img {
+			display: block;
+			width: 100%;
+			aspect-ratio: 4/3;
+			object-fit: cover;
+		}
+
+		.thumbnails article::after {
+			content: '';
+			position: absolute;
+			inset: 0.25em;
+			box-shadow: inset 0 0 0 2px var(--accent);
+			opacity: 0;
+			transition: opacity 0.2s;
+		}
+		.thumbnails article.active::after,
+		.thumbnails article:hover::after { opacity: 1; }
+
+		/* Nav links */
+		#thumb-footer {
+			padding: 1.25em 1.5em;
+			border-top: 1px solid #eee;
+			display: flex;
+			gap: 1.5em;
+			flex-shrink: 0;
+		}
+		#thumb-footer a {
+			font-size: 0.8em;
+			color: var(--fg-light);
+			text-decoration: none;
+			letter-spacing: 0.05em;
+			border-bottom: 1px solid transparent;
+		}
+		#thumb-footer a:hover {
+			color: #333;
+			border-bottom-color: var(--accent);
+		}
+
+		/* Tagline category links */
+		.tagline a.cat-link {
+			color: var(--fg-light);
+			text-decoration: none;
+			border-bottom: 1px solid transparent;
+			transition: color 0.15s, border-color 0.15s;
+		}
+		.tagline a.cat-link:hover {
+			color: #333;
+			border-bottom-color: var(--accent);
+		}
+
+		/* Mobile: stack vertically */
+		@media (max-width: 736px) {
+			html, body { overflow: auto; }
+			#layout { flex-direction: column; height: auto; }
+			#viewer { height: 60vw; min-height: 280px; }
+			#panel { width: 100%; }
+		}
+	</style>
+</head>
+<body>
+
+<div id="layout">
+
+	<!-- Viewer (left) -->
+	<div id="viewer">
+		<button class="viewer-nav" id="nav-prev">&#8249;</button>
+		<img id="viewer-img" src="" alt="" />
+		<button class="viewer-nav" id="nav-next">&#8250;</button>
+		<div id="viewer-caption">
+			<h2 id="viewer-title"></h2>
+			<p id="viewer-desc"></p>
+		</div>
+	</div>
+
+	<!-- Panel (right) -->
+	<div id="panel">
+
+		<header id="header">
+			<h1>NZB Photography</h1>
+			<p class="tagline">
+				<a class="cat-link" href="#" data-cat="0">Reportage</a> &middot;
+				<a class="cat-link" href="#" data-cat="1">Street</a> &middot;
+				<a class="cat-link" href="#" data-cat="2">Commercial</a>
+			</p>
+			<ul class="icons">
+				<li><a href="contact.html" title="Contact Me">&#9993;</a></li>
+				<li><a href="about.html" title="About Me">About Me</a></li>
+			</ul>
+		</header>
+
+		<div id="thumbnails-wrap">
+
+			<!-- REPORTAGE -->
+			<div class="cat-label" id="cat-0">Reportage</div>
+			<div class="thumbnails">
+
+				<article data-full="images/fulls/reportage-jail-01.jpg" data-title="Manila City Jail" data-desc="Inside one of the world's most overcrowded detention facilities.">
+					<img src="images/thumbs/reportage-jail-01.jpg" alt="Manila City Jail" />
+				</article>
+				<article data-full="images/fulls/reportage-jail-tatts-01.jpg" data-title="Jailhouse Tatts" data-desc="Tattoo culture inside Manila City Jail.">
+					<img src="images/thumbs/reportage-jail-tatts-01.jpg" alt="Jailhouse Tatts" />
+				</article>
+				<article data-full="images/fulls/reportage-reming-01.jpg" data-title="Typhoon Reming" data-desc="Destruction left by one of the Philippines' deadliest typhoons.">
+					<img src="images/thumbs/reportage-reming-01.jpg" alt="Typhoon Reming" />
+				</article>
+				<article data-full="images/fulls/reportage-general-01.jpg" data-title="Reportage" data-desc="Philippines.">
+					<img src="images/thumbs/reportage-general-01.jpg" alt="Reportage" />
+				</article>
+				<article data-full="images/fulls/bw-01.jpg" data-title="Black &amp; White" data-desc="Philippines.">
+					<img src="images/thumbs/bw-01.jpg" alt="Black and White" />
+				</article>
+				<article data-full="images/fulls/bw-02.jpg" data-title="Black &amp; White" data-desc="Philippines.">
+					<img src="images/thumbs/bw-02.jpg" alt="Black and White" />
+				</article>
+
+			</div>
+
+			<!-- STREET -->
+			<div class="cat-label" id="cat-1">Street</div>
+			<div class="thumbnails">
+
+				<article data-full="images/fulls/street-01.jpg" data-title="Street" data-desc="Manila.">
+					<img src="images/thumbs/street-01.jpg" alt="Street" />
+				</article>
+				<article data-full="images/fulls/street-02.jpg" data-title="Street" data-desc="Manila.">
+					<img src="images/thumbs/street-02.jpg" alt="Street" />
+				</article>
+				<article data-full="images/fulls/street-03.jpg" data-title="Street" data-desc="Philippines.">
+					<img src="images/thumbs/street-03.jpg" alt="Street" />
+				</article>
+				<article data-full="images/fulls/people-02.jpg" data-title="People" data-desc="Philippines.">
+					<img src="images/thumbs/people-02.jpg" alt="People" />
+				</article>
+				<article data-full="images/fulls/street-04.jpg" data-title="Street" data-desc="Philippines.">
+					<img src="images/thumbs/street-04.jpg" alt="Street" />
+				</article>
+				<article data-full="images/fulls/people-01.jpg" data-title="People" data-desc="Philippines.">
+					<img src="images/thumbs/people-01.jpg" alt="People" />
+				</article>
+
+			</div>
+
+			<!-- COMMERCIAL -->
+			<div class="cat-label" id="cat-2">Commercial</div>
+			<div class="thumbnails">
+
+				<article data-full="images/fulls/people-03.jpg" data-title="People" data-desc="Philippines.">
+					<img src="images/thumbs/people-03.jpg" alt="People" />
+				</article>
+				<article data-full="images/fulls/commercial-arch-01.jpg" data-title="Architecture &amp; Interiors" data-desc="Commercial architectural photography.">
+					<img src="images/thumbs/commercial-arch-01.jpg" alt="Architecture and Interiors" />
+				</article>
+				<article data-full="images/fulls/commercial-arch-03.jpg" data-title="Architecture &amp; Interiors" data-desc="Commercial architectural photography.">
+					<img src="images/thumbs/commercial-arch-03.jpg" alt="Architecture and Interiors" />
+				</article>
+				<article data-full="images/fulls/commercial-arch-02.jpg" data-title="Architecture &amp; Interiors" data-desc="Commercial architectural photography.">
+					<img src="images/thumbs/commercial-arch-02.jpg" alt="Architecture and Interiors" />
+				</article>
+				<article data-full="images/fulls/commercial-fashion-01.jpg" data-title="Fashion" data-desc="Commercial fashion photography.">
+					<img src="images/thumbs/commercial-fashion-01.jpg" alt="Fashion" />
+				</article>
+				<article data-full="images/fulls/commercial-fashion-02.jpg" data-title="Fashion" data-desc="Commercial fashion photography.">
+					<img src="images/thumbs/commercial-fashion-02.jpg" alt="Fashion" />
+				</article>
+				<article data-full="images/fulls/commercial-food-01.jpg" data-title="Food" data-desc="Philippines.">
+					<img src="images/thumbs/commercial-food-01.jpg" alt="Food" />
+				</article>
+				<article data-full="images/fulls/commercial-food-02.jpg" data-title="Food" data-desc="Philippines.">
+					<img src="images/thumbs/commercial-food-02.jpg" alt="Food" />
+				</article>
+
+			</div>
+
+		</div><!-- /thumbnails-wrap -->
+
+		<div id="thumb-footer">
+			<a href="about.html">About</a>
+			<a href="contact.html">Contact</a>
+		</div>
+
+	</div><!-- /panel -->
+
+</div><!-- /layout -->
+
+<script>
+(function() {
+	// Build flat slides array from all articles
+	var articles = document.querySelectorAll('#thumbnails-wrap .thumbnails article');
+	var slides = Array.from(articles);
+	var current = 0;
+
+	var viewerImg   = document.getElementById('viewer-img');
+	var viewerTitle = document.getElementById('viewer-title');
+	var viewerDesc  = document.getElementById('viewer-desc');
+
+	function show(index) {
+		slides.forEach(function(a) { a.classList.remove('active'); });
+
+		current = (index + slides.length) % slides.length;
+		var s = slides[current];
+		s.classList.add('active');
+
+		s.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+
+		viewerTitle.innerHTML = s.dataset.title || '';
+		viewerDesc.innerHTML  = s.dataset.desc  || '';
+
+		// Hide img while new one loads — no progressive decode visible
+		viewerImg.style.visibility = 'hidden';
+
+		var tmp = new Image();
+		tmp.onload = function() {
+			viewerImg.src = tmp.src;
+			viewerImg.alt = s.dataset.title || '';
+			viewerImg.style.visibility = 'visible';
+		};
+		tmp.src = s.dataset.full;
+	}
+
+	// Thumbnail click
+	slides.forEach(function(a, i) {
+		a.addEventListener('click', function() { show(i); });
+	});
+
+	// Arrows
+	document.getElementById('nav-prev').addEventListener('click', function() { show(current - 1); });
+	document.getElementById('nav-next').addEventListener('click', function() { show(current + 1); });
+
+	// Keyboard
+	document.addEventListener('keydown', function(e) {
+		if (e.key === 'ArrowRight' || e.key === 'ArrowDown') show(current + 1);
+		if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   show(current - 1);
+	});
+
+	// Category link → jump to first image in that section
+	document.querySelectorAll('.cat-link').forEach(function(link) {
+		link.addEventListener('click', function(e) {
+			e.preventDefault();
+			var catId = 'cat-' + this.dataset.cat;
+			var label = document.getElementById(catId);
+			if (!label) return;
+			var grid = label.nextElementSibling;
+			var first = grid ? grid.querySelector('article') : null;
+			if (!first) return;
+			var idx = slides.indexOf(first);
+			if (idx >= 0) show(idx);
+		});
+	});
+
+	// Auto-load first image
+	show(0);
+
+})();
+</script>
+
+</body>
+</html>
